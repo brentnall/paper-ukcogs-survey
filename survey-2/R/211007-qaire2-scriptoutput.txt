@@ -1,0 +1,576 @@
+
+R version 3.6.3 (2020-02-29) -- "Holding the Windsock"
+Copyright (C) 2020 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> setwd('/home/adam/datas/data/211007-ukcogs-qaire/qaire2/R/')
+> ## 2nd ukcogs survey
+> 
+> ## Analysis - descriptive tables
+> ## Adam Brentnall
+> 
+> ##libraries
+> library("tidyverse")
+── Attaching packages ─────────────────────────────────────── tidyverse 1.3.0 ──
+✔ ggplot2 3.3.1     ✔ purrr   0.3.4
+✔ tibble  3.0.6     ✔ dplyr   1.0.2
+✔ tidyr   1.0.2     ✔ stringr 1.4.0
+✔ readr   1.3.1     ✔ forcats 0.4.0
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+> 
+> 
+> ##functions used
+> fn.sumstat.cat <- function(ind){
++ 
++     mydat<- table(ind, useNA="always")
++     mypc <- round(100*mydat/sum(mydat),0)
++     myout<-paste0(mydat, " (", mypc, "%)")
++     names(myout)<-names(mydat)
++     myout
++     }
+> 
+> 
+> fn.sumstat.cat.grp <- function(ind,grp){
++ 
++     mydat<- table(ind, grp, useNA="always")[,1:2]
++     mypc<- apply(mydat,2, function(ind) round(100*ind/sum(ind),0))
++     myout<-matrix(paste0(mydat, " (", mypc, "%)"), ncol=ncol(mydat))
++     rownames(myout)<-rownames(mydat)
++     colnames(myout)<-colnames(mydat)
++     myout
++     }
+> 
+> fn.sumstat.cat.all <- function(ind, grp){
++     col1<-fn.sumstat.cat.grp(ind, grp)
++     col2<-fn.sumstat.cat(ind)
++     myout<-cbind(col1    ,  col2)
++     colnames(myout)[3]<-"Both"
++     myout
++ }
+> 
+> ##load data
+> 
+> mydta <- read_csv("../data/UKCOGS_Survey_2-header.csv")
+Parsed with column specification:
+cols(
+  .default = col_character(),
+  `5` = col_logical(),
+  `7` = col_logical(),
+  `71b` = col_double(),
+  `72b` = col_double(),
+  `8` = col_logical()
+)
+See spec(...) for full column specifications.
+> 
+> ## remove duplicates (arbitrary - ask someone to check which one best? and clean?)
+> ## 5 * UCL, 2* leeds, 3* Christie
+> 
+> mydta <- mydta %>%
++     filter(!is.na(Centre))
+> 
+> mydrop1 <- (mydta$name2 %in% c("The Christie Foundation Trust", "The Christie NHS FT"))
+> 
+> mydrop2 <- (duplicated(mydta$name1))& mydta$name1 !="Other"
+> 
+> mydta <- mydta %>%
++     filter((mydrop1 + mydrop2) ==0)
+> 
+> ## sites
+> allname<- mydta$name1
+> allname[allname=="Other"] <-mydta$name2[allname=="Other"]
+> ##centres
+> sort(allname[mydta$Centre=="Centre"])
+ [1] "Barts Health NHS Trust"                                        
+ [2] "Cambridge University Hospitals NHS Foundation Trust"           
+ [3] "Chelltenham General Hospital"                                  
+ [4] "East Kent Hospitals University Foundation NHS Trust"           
+ [5] "Gloucestershire Hospitals NHSFT"                               
+ [6] "Ipswich Hospital"                                              
+ [7] "Leeds Teaching Hospital NHS Trust"                             
+ [8] "Liverpool Women's Hospital"                                    
+ [9] "Norfolk & Norwich University Hospitals NHS Foundation Trust"   
+[10] "North Wales Surgical Cancer Centre"                            
+[11] "Northampton General Hospital"                                  
+[12] "Northern Gynaecological Oncology Centre Gateshead"             
+[13] "Nottingham University Hospitals NHS Trust"                     
+[14] "Pan Birmingham Gynaecological Cancer Centre"                   
+[15] "Royal Cornwall Hospitals NHS Trust"                            
+[16] "Royal Derby Hospital"                                          
+[17] "Royal Infirmary of Edinburgh"                                  
+[18] "Royal Preston Hospital"                                        
+[19] "Royal United Hospitals Bath"                                   
+[20] "Sheffield Teaching Hospitals NHS Foundation Trust"             
+[21] "Somerset NHS Foundation Trust"                                 
+[22] "South East Scotland Cancer Network"                            
+[23] "St. Mary's Hospital Manchester University NHS Foundation Trust"
+[24] "The Christie NHS Foundation Trust"                             
+[25] "The Royal Marsden NHS Foundation Trust"                        
+[26] "University College London Hospitals NHS Foundation Trust"      
+[27] "University Hospital of Wales Cardiff"                          
+[28] "University Hospitals Bristol NHS Foundation Trust"             
+[29] "University Hospitals Coventry and Warwickshire NHS Trust"      
+> ##units
+> sort(allname[mydta$Centre!="Centre"])
+ [1] "Basingstoke and North Hampshire Hospital"                              
+ [2] "Chesterfield - you really should have a list of these for this survey."
+ [3] "colchester general hospital"                                           
+ [4] "County Durham & Darlington NHS Foundation Trust"                       
+ [5] "Dorset county hospital"                                                
+ [6] "Mid Yorkshire Hospitals NHS Trust"                                     
+ [7] "Pinderfields Hospital"                                                 
+ [8] "Queen's Hospital Burton"                                               
+ [9] "Royal Bolton Hospital"                                                 
+[10] "Royal Hampshire County Hospital Winchester"                            
+[11] "Shrewsbury and Telford NHS Trust"                                      
+[12] "Walsall Healthcare NHS Trust"                                          
+[13] "Whittington Health NHS Trust"                                          
+> 
+> 
+> 
+> ## 2. Regarding staffing, have you experienced significant reduction in staff numbers in your centre from 26/12/20 onwards?
+> fn.sumstat.cat.all(mydta$"2", mydta$Centre)
+     Centre     Unit        Both      
+No   "24 (83%)" "14 (100%)" "38 (88%)"
+Yes  "5 (17%)"  "0 (0%)"    "5 (12%)" 
+<NA> "0 (0%)"   "0 (0%)"    "0 (0%)"  
+> 
+> ## not really - so not much point with below
+> 
+> ## 2.a. Is this due to COVID related sickness and/or redeployment among junior doctors?
+> ##2.a.i. Please select the overall percentage by which junior doctor numbers were reduced to the nearest percent. For example, if junior doctor staff numbers are reduced from 10 to 7 (i.e. 30%) then select 21-30%.
+> ## 2.b. Is this due to COVID related sickness and/or redeployment among GO sub-specialty trainees?
+> ## 2.b.i. Please select the overall percentage by which GO sub-specialty trainee numbers were reduced to the nearest percent.
+> ##2.c. Is this due to COVID related sickness and/or redeployment among consultant staff?
+> ## 2.c.i. Please select the overall percentage by which consultant staff numbers were reduced to the nearest percent.
+> ##2.d. Is this due to COVID related sickness and/or redeployment among CNS staff?
+> ## 2.d.i. Please select the overall percentage by which CNS staff numbers were reduced to the nearest percent.
+> 
+> 
+> 
+> 
+> ##3. Have you changed the way your MDT function due to COVID?
+> fn.sumstat.cat.all(mydta$"3", mydta$Centre)
+     Centre     Unit       Both      
+No   "5 (17%)"  "3 (21%)"  "8 (19%)" 
+Yes  "24 (83%)" "11 (79%)" "35 (81%)"
+<NA> "0 (0%)"   "0 (0%)"   "0 (0%)"  
+> 
+> ##3.a. Please indicate all changes to MDT functioning you have implemented.
+> mycats<-unique(unlist(str_split(mydta$"3a",",")))
+> mycats<- mycats[!is.na(mycats)]
+> 
+> my3a <-str_split(mydta$"3a",",")
+> mydta$mixed<-unlist(lapply(my3a, function(ind) sum(ind %in% mycats[1])))
+> mydta$virtual<-unlist(lapply(my3a, function(ind) sum(ind %in% mycats[2])))
+> mydta$fewerppl<-unlist(lapply(my3a, function(ind) sum(ind %in% mycats[3])))
+> 
+> ##Undertaking mixed virtual and face to face MDT
+> fn.sumstat.cat.all(mydta$mixed, mydta$Centre)
+     Centre     Unit      Both      
+0    "13 (45%)" "9 (64%)" "22 (51%)"
+1    "16 (55%)" "5 (36%)" "21 (49%)"
+<NA> "0 (0%)"   "0 (0%)"  "0 (0%)"  
+> 
+> ##Undertaking virtual MDT"
+> fn.sumstat.cat.all(mydta$virtual, mydta$Centre)
+     Centre     Unit      Both      
+0    "19 (66%)" "8 (57%)" "27 (63%)"
+1    "10 (34%)" "6 (43%)" "16 (37%)"
+<NA> "0 (0%)"   "0 (0%)"  "0 (0%)"  
+> 
+> ##Reduced number of attendees at MDT
+> fn.sumstat.cat.all(mydta$fewerppl, mydta$Centre)
+     Centre     Unit       Both      
+0    "24 (83%)" "12 (86%)" "36 (84%)"
+1    "5 (17%)"  "2 (14%)"  "7 (16%)" 
+<NA> "0 (0%)"   "0 (0%)"   "0 (0%)"  
+> ##3.a.i. If the number of attendees at MDT are reduced please select % reduced
+> fn.sumstat.cat.all(mydta$"3ai", mydta$Centre)
+       Centre     Unit       Both      
+0-10%  "1 (3%)"   "0 (0%)"   "1 (2%)"  
+21-30% "2 (7%)"   "2 (14%)"  "4 (9%)"  
+31-40% "1 (3%)"   "0 (0%)"   "1 (2%)"  
+81-90% "1 (3%)"   "0 (0%)"   "1 (2%)"  
+<NA>   "24 (83%)" "12 (86%)" "36 (84%)"
+> 
+> 
+> 
+> ## 4. What proportion of your out-patient clinic is currently remote consultation?
+> 
+> fn.sumstat.cat.all(mydta$"41-50%", mydta$Centre)
+       Centre    Unit      Both      
+0-10%  "7 (24%)" "5 (36%)" "12 (28%)"
+11-20% "3 (10%)" "2 (14%)" "5 (12%)" 
+21-30% "6 (21%)" "3 (21%)" "9 (21%)" 
+31-40% "4 (14%)" "4 (29%)" "8 (19%)" 
+41-50% "6 (21%)" "0 (0%)"  "6 (14%)" 
+51-60% "1 (3%)"  "0 (0%)"  "1 (2%)"  
+71-80% "1 (3%)"  "0 (0%)"  "1 (2%)"  
+<NA>   "1 (3%)"  "0 (0%)"  "1 (2%)"  
+> 
+> ## 5. Please answer the following questions about the proportion reduction of Gynae Oncology related activity:
+> ##5.1.a. How much has theatre time reduced? - % Reduced
+> 
+> fn.sumstat.cat.all(mydta$"51a", mydta$Centre)
+       Centre     Unit      Both      
+0%     "12 (41%)" "4 (29%)" "16 (37%)"
+1-10%  "5 (17%)"  "1 (7%)"  "6 (14%)" 
+11-20% "3 (10%)"  "2 (14%)" "5 (12%)" 
+21-30% "5 (17%)"  "3 (21%)" "8 (19%)" 
+31-40% "3 (10%)"  "2 (14%)" "5 (12%)" 
+41-50% "1 (3%)"   "0 (0%)"  "1 (2%)"  
+71-80% "0 (0%)"   "1 (7%)"  "1 (2%)"  
+81-90% "0 (0%)"   "1 (7%)"  "1 (2%)"  
+<NA>   "0 (0%)"   "0 (0%)"  "0 (0%)"  
+> 
+> ##5.2.a. What is the proportion of surgical cases postponed? - % Reduced
+> fn.sumstat.cat.all(mydta$"52a", mydta$Centre)
+       Centre     Unit      Both      
+0%     "12 (41%)" "2 (14%)" "14 (33%)"
+1-10%  "5 (17%)"  "6 (43%)" "11 (26%)"
+11-20% "7 (24%)"  "4 (29%)" "11 (26%)"
+21-30% "3 (10%)"  "1 (7%)"  "4 (9%)"  
+31-40% "1 (3%)"   "0 (0%)"  "1 (2%)"  
+41-50% "0 (0%)"   "1 (7%)"  "1 (2%)"  
+51-60% "1 (3%)"   "0 (0%)"  "1 (2%)"  
+<NA>   "0 (0%)"   "0 (0%)"  "0 (0%)"  
+> 
+> ##5.3.a. How much has medical oncology access/capacity been reduced? - % Reduced
+> fn.sumstat.cat.all(mydta$"53a", mydta$Centre)
+       Centre     Unit      Both      
+0%     "16 (55%)" "5 (36%)" "21 (49%)"
+1-10%  "5 (17%)"  "2 (14%)" "7 (16%)" 
+11-20% "1 (3%)"   "2 (14%)" "3 (7%)"  
+21-30% "0 (0%)"   "3 (21%)" "3 (7%)"  
+41-50% "1 (3%)"   "0 (0%)"  "1 (2%)"  
+<NA>   "6 (21%)"  "2 (14%)" "8 (19%)" 
+> 
+> ##5.4.a. How much has clinical oncology access/capacity been reduced? - % Reduced
+> fn.sumstat.cat.all(mydta$"54a", mydta$Centre)
+       Centre     Unit      Both      
+0%     "16 (55%)" "7 (50%)" "23 (53%)"
+1-10%  "5 (17%)"  "3 (21%)" "8 (19%)" 
+11-20% "1 (3%)"   "1 (7%)"  "2 (5%)"  
+31-40% "1 (3%)"   "1 (7%)"  "2 (5%)"  
+<NA>   "6 (21%)"  "2 (14%)" "8 (19%)" 
+> 
+> ##5.5.a. How much has theatre-based (intrauterine) brachytherapy been reduced? - % Reduced
+> fn.sumstat.cat.all(mydta$"55a", mydta$Centre)
+       Centre     Unit       Both      
+0%     "15 (52%)" "10 (71%)" "25 (58%)"
+1-10%  "3 (10%)"  "0 (0%)"   "3 (7%)"  
+11-20% "1 (3%)"   "1 (7%)"   "2 (5%)"  
+21-30% "1 (3%)"   "0 (0%)"   "1 (2%)"  
+31-40% "1 (3%)"   "0 (0%)"   "1 (2%)"  
+81-90% "1 (3%)"   "0 (0%)"   "1 (2%)"  
+<NA>   "7 (24%)"  "3 (21%)"  "10 (23%)"
+> 
+> ##5.6.a. How much have outpatient brachytherapy services been reduced? - % Reduced
+> fn.sumstat.cat.all(mydta$"56a", mydta$Centre)
+       Centre     Unit      Both      
+0%     "18 (62%)" "8 (57%)" "26 (60%)"
+1-10%  "3 (10%)"  "3 (21%)" "6 (14%)" 
+21-30% "1 (3%)"   "0 (0%)"  "1 (2%)"  
+<NA>   "7 (24%)"  "3 (21%)" "10 (23%)"
+> 
+> ##5.7.a. How much has radiology access/capacity been reduced? - % Reduced
+> fn.sumstat.cat.all(mydta$"57a", mydta$Centre)
+       Centre     Unit      Both      
+0%     "15 (52%)" "6 (43%)" "21 (49%)"
+1-10%  "6 (21%)"  "7 (50%)" "13 (30%)"
+11-20% "4 (14%)"  "0 (0%)"  "4 (9%)"  
+31-40% "1 (3%)"   "0 (0%)"  "1 (2%)"  
+<NA>   "3 (10%)"  "1 (7%)"  "4 (9%)"  
+> 
+> ##5.8.a. How much has pathology access/capacity been reduced? - % Reduced
+> fn.sumstat.cat.all(mydta$"58a", mydta$Centre)
+       Centre     Unit      Both      
+0%     "20 (69%)" "8 (57%)" "28 (65%)"
+1-10%  "3 (10%)"  "4 (29%)" "7 (16%)" 
+11-20% "2 (7%)"   "1 (7%)"  "3 (7%)"  
+31-40% "1 (3%)"   "0 (0%)"  "1 (2%)"  
+41-50% "1 (3%)"   "0 (0%)"  "1 (2%)"  
+<NA>   "2 (7%)"   "1 (7%)"  "3 (7%)"  
+> 
+> ##5.9.a. How much has palliative care access/capacity been reduced? - % Reduced
+> fn.sumstat.cat.all(mydta$"59a", mydta$Centre)
+       Centre     Unit      Both      
+0%     "21 (72%)" "9 (64%)" "30 (70%)"
+1-10%  "2 (7%)"   "3 (21%)" "5 (12%)" 
+11-20% "1 (3%)"   "2 (14%)" "3 (7%)"  
+21-30% "1 (3%)"   "0 (0%)"  "1 (2%)"  
+31-40% "2 (7%)"   "0 (0%)"  "2 (5%)"  
+<NA>   "2 (7%)"   "0 (0%)"  "2 (5%)"  
+> 
+> ##5.10.a. How much have your rapid access referrals dropped by? - % Reduced
+> fn.sumstat.cat.all(mydta$"510a", mydta$Centre)
+       Centre     Unit      Both      
+0%     "15 (52%)" "9 (64%)" "24 (56%)"
+1-10%  "2 (7%)"   "2 (14%)" "4 (9%)"  
+11-20% "4 (14%)"  "1 (7%)"  "5 (12%)" 
+21-30% "3 (10%)"  "2 (14%)" "5 (12%)" 
+31-40% "1 (3%)"   "0 (0%)"  "1 (2%)"  
+41-50% "1 (3%)"   "0 (0%)"  "1 (2%)"  
+<NA>   "3 (10%)"  "0 (0%)"  "3 (7%)"  
+> 
+> ##5.11.a. How much has your weekly MDT list/workload reduced by? - % Reduced
+> fn.sumstat.cat.all(mydta$"511a", mydta$Centre)
+       Centre     Unit       Both      
+0%     "22 (76%)" "13 (93%)" "35 (81%)"
+1-10%  "3 (10%)"  "1 (7%)"   "4 (9%)"  
+11-20% "3 (10%)"  "0 (0%)"   "3 (7%)"  
+21-30% "1 (3%)"   "0 (0%)"   "1 (2%)"  
+<NA>   "0 (0%)"   "0 (0%)"   "0 (0%)"  
+> 
+> ##6. Please tick all applicable boxes regarding PPE use in theatre:
+> mycats<-unique(unlist(str_split(mydta$"6",",")))
+> mycats<- mycats[!is.na(mycats)]
+> 
+> my6 <-str_split(mydta$"6",",")
+> mydta$ffp<-unlist(lapply(my6, function(ind) sum(ind %in% mycats[1])))
+> mydta$visor<-unlist(lapply(my6, function(ind) sum(ind %in% mycats[2])))
+> mydta$dglove<-unlist(lapply(my6, function(ind) sum(ind %in% mycats[3])))
+> mydta$anas<-unlist(lapply(my6, function(ind) sum(ind %in% mycats[4])))
+> ## "FFP3 masks"
+> fn.sumstat.cat.all(mydta$ffp, mydta$Centre)
+     Centre     Unit        Both      
+0    "15 (52%)" "0 (0%)"    "15 (35%)"
+1    "14 (48%)" "14 (100%)" "28 (65%)"
+<NA> "0 (0%)"   "0 (0%)"    "0 (0%)"  
+> ## Visor
+> fn.sumstat.cat.all(mydta$visor, mydta$Centre)
+     Centre     Unit        Both      
+0    "15 (52%)" "0 (0%)"    "15 (35%)"
+1    "14 (48%)" "14 (100%)" "28 (65%)"
+<NA> "0 (0%)"   "0 (0%)"    "0 (0%)"  
+> ## Double glove
+> fn.sumstat.cat.all(mydta$dglove, mydta$Centre)
+     Centre     Unit      Both      
+0    "18 (62%)" "6 (43%)" "24 (56%)"
+1    "11 (38%)" "8 (57%)" "19 (44%)"
+<NA> "0 (0%)"   "0 (0%)"  "0 (0%)"  
+> ## "Anaesthesia administered in operating theatre"
+> fn.sumstat.cat.all(mydta$anas, mydta$Centre)
+     Centre     Unit      Both      
+0    "17 (59%)" "6 (43%)" "23 (53%)"
+1    "12 (41%)" "8 (57%)" "20 (47%)"
+<NA> "0 (0%)"   "0 (0%)"  "0 (0%)"  
+> 
+> 
+> ##7. Please complete the following boxes regarding patient pre-operative prep for major and minor procedures
+> ##7.1.a. Major Procedures - Duration of patient self-isolation prior to procedure
+> fn.sumstat.cat.all(mydta$"71a", mydta$Centre)
+           Centre     Unit      Both      
+0-2 days   "3 (10%)"  "0 (0%)"  "3 (7%)"  
+13-14 days "14 (48%)" "5 (36%)" "19 (44%)"
+3-4 days   "9 (31%)"  "6 (43%)" "15 (35%)"
+5-6 days   "0 (0%)"   "1 (7%)"  "1 (2%)"  
+7-8 days   "0 (0%)"   "1 (7%)"  "1 (2%)"  
+9-10 days  "3 (10%)"  "1 (7%)"  "4 (9%)"  
+<NA>       "0 (0%)"   "0 (0%)"  "0 (0%)"  
+> 
+> ##7.1.b. Major Procedures - Number of COVID swabs prior to procedure
+> fn.sumstat.cat.all(mydta$"71b", mydta$Centre)
+     Centre     Unit        Both      
+1    "25 (86%)" "14 (100%)" "39 (91%)"
+2    "4 (14%)"  "0 (0%)"    "4 (9%)"  
+<NA> "0 (0%)"   "0 (0%)"    "0 (0%)"  
+> 
+> ##7.1.c. Major Procedures - Are patients required to be vaccinated for COVID prior to procedure?
+> fn.sumstat.cat.all(mydta$"71c", mydta$Centre)
+     Centre     Unit      Both      
+N/A  "1 (3%)"   "1 (7%)"  "2 (5%)"  
+No   "24 (83%)" "7 (50%)" "31 (72%)"
+Yes  "4 (14%)"  "2 (14%)" "6 (14%)" 
+<NA> "0 (0%)"   "4 (29%)" "4 (9%)"  
+> 
+> ##7.2.a. Minor Procedures - Duration of patient self-isolation prior to procedure
+> fn.sumstat.cat.all(mydta$"72a", mydta$Centre)
+           Centre     Unit      Both      
+0-2 days   "3 (10%)"  "0 (0%)"  "3 (7%)"  
+11-12 days "1 (3%)"   "0 (0%)"  "1 (2%)"  
+13-14 days "7 (24%)"  "2 (14%)" "9 (21%)" 
+3-4 days   "14 (48%)" "9 (64%)" "23 (53%)"
+5-6 days   "0 (0%)"   "1 (7%)"  "1 (2%)"  
+7-8 days   "2 (7%)"   "1 (7%)"  "3 (7%)"  
+9-10 days  "2 (7%)"   "0 (0%)"  "2 (5%)"  
+Don't Know "0 (0%)"   "1 (7%)"  "1 (2%)"  
+<NA>       "0 (0%)"   "0 (0%)"  "0 (0%)"  
+> 
+> ##7.2.b. Minor Procedures - Number of COVID swabs prior to procedure
+> fn.sumstat.cat.all(mydta$"72b", mydta$Centre)
+     Centre     Unit        Both      
+1    "26 (90%)" "14 (100%)" "40 (93%)"
+2    "3 (10%)"  "0 (0%)"    "3 (7%)"  
+<NA> "0 (0%)"   "0 (0%)"    "0 (0%)"  
+> 
+> ##7.2.c. Minor Procedures - Are patients required to be vaccinated for COVID prior to procedure?
+> fn.sumstat.cat.all(mydta$"72c", mydta$Centre)
+     Centre     Unit      Both      
+N/A  "1 (3%)"   "1 (7%)"  "2 (5%)"  
+No   "26 (90%)" "7 (50%)" "33 (77%)"
+Yes  "2 (7%)"   "2 (14%)" "4 (9%)"  
+<NA> "0 (0%)"   "4 (29%)" "4 (9%)"  
+> 
+> ##8. Have you needed to move activity off site to another hospital due to the recent surge in cases? (e.g. Independent sector)
+> 
+> 
+> ##8.1.a. Moved operating lists
+> fn.sumstat.cat.all(mydta$"81a", mydta$Centre)
+     Centre     Unit      Both      
+No   "17 (59%)" "9 (64%)" "26 (60%)"
+Yes  "12 (41%)" "5 (36%)" "17 (40%)"
+<NA> "0 (0%)"   "0 (0%)"  "0 (0%)"  
+> 
+> ##8.2.a. Moved clinics
+> fn.sumstat.cat.all(mydta$"82a", mydta$Centre)
+     Centre     Unit       Both      
+No   "28 (97%)" "13 (93%)" "41 (95%)"
+Yes  "1 (3%)"   "1 (7%)"   "2 (5%)"  
+<NA> "0 (0%)"   "0 (0%)"   "0 (0%)"  
+> 
+> ##8.3.a. Moved (theatre based) intrauterine and interstitial brachytherapy
+> fn.sumstat.cat.all(mydta$"83a", mydta$Centre)
+     Centre     Unit       Both      
+DK   "1 (3%)"   "0 (0%)"   "1 (2%)"  
+N/A  "1 (3%)"   "10 (71%)" "11 (26%)"
+No   "25 (86%)" "4 (29%)"  "29 (67%)"
+Yes  "1 (3%)"   "0 (0%)"   "1 (2%)"  
+<NA> "1 (3%)"   "0 (0%)"   "1 (2%)"  
+> 
+> ##8.4.a. Moved outpatient (vaginal) brachytherapy
+> fn.sumstat.cat.all(mydta$"84a", mydta$Centre)
+     Centre     Unit      Both      
+DK   "3 (10%)"  "0 (0%)"  "3 (7%)"  
+N/A  "1 (3%)"   "8 (57%)" "9 (21%)" 
+No   "23 (79%)" "6 (43%)" "29 (67%)"
+Yes  "1 (3%)"   "0 (0%)"  "1 (2%)"  
+<NA> "1 (3%)"   "0 (0%)"  "1 (2%)"  
+> 
+> ##8.5.a. Moved other activity
+> fn.sumstat.cat.all(mydta$"85a", mydta$Centre)
+     Centre     Unit      Both      
+DK   "2 (7%)"   "0 (0%)"  "2 (5%)"  
+N/A  "0 (0%)"   "8 (57%)" "8 (19%)" 
+No   "25 (86%)" "4 (29%)" "29 (67%)"
+Yes  "2 (7%)"   "2 (14%)" "4 (9%)"  
+<NA> "0 (0%)"   "0 (0%)"  "0 (0%)"  
+> 
+> ##8.6.a. Not yet moved but are planning to move
+> fn.sumstat.cat.all(mydta$"86a", mydta$Centre)
+     Centre     Unit      Both      
+N/A  "2 (7%)"   "8 (57%)" "10 (23%)"
+No   "26 (90%)" "6 (43%)" "32 (74%)"
+<NA> "1 (3%)"   "0 (0%)"  "1 (2%)"  
+> 
+> ##8.7.a. Do you need to go via a central hub or committee to access operating?
+> fn.sumstat.cat.all(mydta$"87a", mydta$Centre)
+     Centre     Unit      Both      
+N/A  "1 (3%)"   "3 (21%)" "4 (9%)"  
+No   "18 (62%)" "5 (36%)" "23 (53%)"
+Yes  "9 (31%)"  "6 (43%)" "15 (35%)"
+<NA> "1 (3%)"   "0 (0%)"  "1 (2%)"  
+> 
+> ##8.8.a. If you are working in the independent sector because you previously moved activity to the independent sector (prior to the current 2021 surge) and have not moved back to the NHS site please tick 'yes' here
+> fn.sumstat.cat.all(mydta$"88a", mydta$Centre)
+     Centre     Unit      Both      
+N/A  "8 (28%)"  "6 (43%)" "14 (33%)"
+No   "20 (69%)" "7 (50%)" "27 (63%)"
+Yes  "0 (0%)"   "1 (7%)"  "1 (2%)"  
+<NA> "1 (3%)"   "0 (0%)"  "1 (2%)"  
+> 
+> ##8.a. When operating at different locations than normal, does your normal in-house pathology team report the specimens or are they reported by another team?
+> fn.sumstat.cat.all(mydta$"8a", mydta$Centre)
+                     Centre     Unit       Both      
+Another team         "0 (0%)"   "1 (7%)"   "1 (2%)"  
+N/A                  "12 (41%)" "3 (21%)"  "15 (35%)"
+Normal in-house team "16 (55%)" "10 (71%)" "26 (60%)"
+<NA>                 "1 (3%)"   "0 (0%)"   "1 (2%)"  
+> 
+> ##9. Are you working in a COVID-free hospital?
+> fn.sumstat.cat.all(mydta$"9", mydta$Centre)
+     Centre     Unit       Both      
+No   "22 (76%)" "12 (86%)" "34 (79%)"
+Yes  "6 (21%)"  "2 (14%)"  "8 (19%)" 
+<NA> "1 (3%)"   "0 (0%)"   "1 (2%)"  
+> ##9.a. If no- Do you have COVID-free/green zones within the non-COVID-free hospital?
+> fn.sumstat.cat.all(mydta$"9a", mydta$Centre)
+           Centre     Unit       Both      
+Don't Know "0 (0%)"   "1 (7%)"   "1 (2%)"  
+No         "4 (14%)"  "0 (0%)"   "4 (9%)"  
+Yes        "18 (62%)" "10 (71%)" "28 (65%)"
+<NA>       "7 (24%)"  "3 (21%)"  "10 (23%)"
+> 
+> ##10. Are you undertaking minimal access procedures?
+> fn.sumstat.cat.all(mydta$"10", mydta$Centre)
+     Centre     Unit        Both      
+Yes  "28 (97%)" "14 (100%)" "42 (98%)"
+<NA> "1 (3%)"   "0 (0%)"    "1 (2%)"  
+> 
+> ##11. How would you describe yourself?
+> fn.sumstat.cat.all(mydta$"11", mydta$Centre)
+                                                       Centre     Unit     
+CNS                                                    "0 (0%)"   "2 (14%)"
+Consultant GO/med onc/clin onc/radiologist/pathologist "26 (90%)" "7 (50%)"
+Other                                                  "0 (0%)"   "4 (29%)"
+Other trainee in GO/med onc/clin onc/radiology/path    "1 (3%)"   "1 (7%)" 
+Subspecialty fellow in GO                              "2 (7%)"   "0 (0%)" 
+<NA>                                                   "0 (0%)"   "0 (0%)" 
+                                                       Both      
+CNS                                                    "2 (5%)"  
+Consultant GO/med onc/clin onc/radiologist/pathologist "33 (77%)"
+Other                                                  "4 (9%)"  
+Other trainee in GO/med onc/clin onc/radiology/path    "2 (5%)"  
+Subspecialty fellow in GO                              "2 (5%)"  
+<NA>                                                   "0 (0%)"  
+> ##11.a. Other:
+> fn.sumstat.cat.all(mydta$"11a", mydta$Centre)
+                                            Centre      Unit       Both      
+Cancer Unit Lead Clinician                  "0 (0%)"    "1 (7%)"   "1 (2%)"  
+Consultant Gynaecologist in diagnostic unit "0 (0%)"    "1 (7%)"   "1 (2%)"  
+O and G with special interest               "0 (0%)"    "1 (7%)"   "1 (2%)"  
+Unit lead - O&G, lap                        "0 (0%)"    "1 (7%)"   "1 (2%)"  
+<NA>                                        "29 (100%)" "10 (71%)" "39 (91%)"
+> 
+> ##12. Please use this box to provide any free text comments
+> print("===========Centre============")
+[1] "===========Centre============"
+> unique(mydta$"12"[mydta$Centre=="Centre"])
+[1] NA                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
+[2] "During the first wave all in March 2020, all activity was moved to a different hospital in the trust. One list per week was also being carried out in the independent sector. During the second wave, we have been working at our usual base hospital with the private wing being used for elective admissions. Although the vaccine is not a must, once the patient has been listed for surgery, then efforts are made to vaccinate the patient prior to procedure. In outpatients, a good proportion of the followups are being done remotely and face to afce reserved for cervix and vulval cancer FU mainly. PIFU has also been introduced. New patients are seen face to face as far as possible."
+[3] "No brachtherapy service at our centre - referred to The Christie"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
+[4] "lost 3 operating sessions per week in NHS and re-provided 2 sessions in private hospital so capacity for complex cases significantly reduced"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
+[5] "Unable to comment on oncology capacity"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
+[6] "We need to think about the patient who are suffering , but not cancer such as Large fibroids and endometriosis. NHS, Cancer team and journalist have ignored them"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+[7] "We are v fortunate to have 2 sites, we are based at Cheltenham, which we have kept green, with all of our covid patients being treated at Gloucester"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
+[8] "Work patterns have returned to near normal levels with no apparent waiting list increase. Anecdotally there appear to be higher stage cancers appearing eg endometrium and ovary which might indicate delay in patients presenting but we don't yet have data to confirm this"                                                                                                                                                                                                                                                                                                                                                                                                                          
+[9] "I do not have completely accurate figures for the above questions - and am not sure when the questions refer to as there has been huge variation during the different surges. I have answered them currently."                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+> print("===========Unit============")
+[1] "===========Unit============"
+> unique(mydta$"12"[mydta$Centre=="Unit"])
+[1] NA                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+[2] "We had covid free operating lists and since last week, moved back to main hospital site but slightly reduced capacity still"                                                                                                                                                                                                                                                                                                                                                                                                         
+[3] "This survey is really biased against the Units. If you want to survey the Units, first learn what they are, then go over the qs with that in mind."                                                                                                                                                                                                                                                                                                                                                                                  
+[4] "Our trust has been extremely supportive to cancer services. Though overall theatre capacity was reduced, Cancer surgery still continued. We were also offered capacity in the local Nuffield. We managed to get surgeons from local cancer centre to come and operate in our lists for patients who needed tertiary referrals as the local cancer centre theatres were shut for a few weeks. Patients with high BMI and CAH/grade 1 endometrial cancer were initially managed conservatively with Mirena which helped with capacity."
+[5] "Questions on chemo/radio-therapy don't really apply to units so another option should have been given"                                                                                                                                                                                                                                                                                                                                                                                                                               
+[6] "There has been a improved confidence and smoother process with time, leading to almost normal working conditions now."                                                                                                                                                                                                                                                                                                                                                                                                               
+> q()
+Save workspace image? [y/n/c]: n
+
+Process R finished at Thu Oct  7 15:07:10 2021
